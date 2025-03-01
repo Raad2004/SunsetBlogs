@@ -29,16 +29,27 @@
       font-weight: bold;
     }
 
+    label.required::after {
+      content: " *";
+      color: red;
+    }
+
     input[type="text"],
     input[type="date"],
     input[type="url"],
     input[type="file"],
-    textarea {
+    textarea,
+    select {
       width: 100%;
       padding: 8px;
       border: 1px solid #ddd;
       border-radius: 4px;
       font-size: 16px;
+    }
+
+    select {
+      background-color: white;
+      cursor: pointer;
     }
 
     textarea {
@@ -77,6 +88,8 @@
       background-color: #1976D2;
     }
   </style>
+
+  <script src="../JavaScript/blog-validation.js"></script>
 
   <script>
     // JavaScript function to dynamically add more subtitles and content fields
@@ -137,18 +150,18 @@
     <form class="blog-form">
       <!-- Blog Title -->
       <div class="form-group">
-        <label for="blogTitle">Blog Title</label>
+        <label for="blogTitle" class="required">Blog Title</label>
         <input type="text" id="blogTitle" name="blogTitle" placeholder="Enter your blog title here" required />
       </div>
 
       <!-- Date & Posted By -->
       <div class="form-row">
         <div class="form-group">
-          <label for="blogDate">Date</label>
+          <label for="blogDate" class="required">Date</label>
           <input type="date" id="blogDate" name="blogDate" required />
         </div>
         <div class="form-group">
-          <label for="blogAuthor">Posted By</label>
+          <label for="blogAuthor" class="required">Posted By</label>
           <input type="text" id="blogAuthor" name="blogAuthor" placeholder="Author name" required />
         </div>
       </div>
@@ -156,19 +169,21 @@
       <!-- Subtitles container (initially contains one subtitle group) -->
       <div id="subtitle-container">
         <div class="subtitle-group">
-          <label for="firstSubtitle">Subtitle</label>
+          <label for="firstSubtitle" class="required">Subtitle</label>
           <input
             type="text"
             id="firstSubtitle"
             name="subtitles[]"
             placeholder="Enter your subtitle"
+            required
           />
-          <label for="firstContent">Content</label>
+          <label for="firstContent" class="required">Content</label>
           <textarea
             id="firstContent"
             name="subtitles-content[]"
             rows="4"
             placeholder="Write content for this subtitle"
+            required
           ></textarea>
         </div>
       </div>
@@ -206,8 +221,19 @@
       </div>
 
       <div class="form-group">
-        <label for="blogCategories">Categories</label>
-        <input type="text" id="blogCategories" name="blogCategories" placeholder="Enter comma-separated categories" />
+        <label for="blogCategories">Category</label>
+        <select id="blogCategories" name="blogCategories">
+          <option value="Technology">Technology</option>
+          <option value="Lifestyle">Lifestyle</option>
+          <option value="Travel">Travel</option>
+          <option value="Food">Food & Cooking</option>
+          <option value="Health">Health & Wellness</option>
+          <option value="Education">Education</option>
+          <option value="Business">Business</option>
+          <option value="Entertainment">Entertainment</option>
+          <option value="Art">Art & Design</option>
+          <option value="Personal">Personal</option>
+        </select>
       </div>
 
       <!-- Submit button -->

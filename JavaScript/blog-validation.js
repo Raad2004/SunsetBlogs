@@ -67,8 +67,7 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        // If all validation passes, you can submit the form
-        // For now, we'll just show a success message
-        alert('Blog post created successfully!');
+        // If all validation passes, submit the form
+        this.submit();
     });
 }); 

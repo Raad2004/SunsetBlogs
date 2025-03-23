@@ -1,34 +1,63 @@
 document.addEventListener("DOMContentLoaded", function () {
     const form = document.querySelector("form");
+    const formMessage = document.getElementById("form-message");
 
     if (form) {
-        form.addEventListener("submit", function (event) {
+        form.addEventListener("submit", async function (event) {
+            event.preventDefault();
+            
             const firstName = document.getElementById("first-name").value.trim();
             const lastName = document.getElementById("last-name").value.trim();
             const question = document.getElementById("question").value.trim();
 
+            // Validate inputs
             if (!validateName(firstName)) {
-                alert("First Name should only contain letters, numbers, and spaces.");
-                event.preventDefault();
+                showMessage("First Name should only contain letters and spaces.", "error");
                 return false;
             }
 
             if (!validateName(lastName)) {
-                alert("Last Name should only contain letters, numbers, and spaces.");
-                event.preventDefault();
+                showMessage("Last Name should only contain letters and spaces.", "error");
                 return false;
             }
 
             if (!validateQuestion(question)) {
-                alert("Your question should only contain letters, numbers, spaces, and '@'.");
-                event.preventDefault();
+                showMessage("Your question should only contain letters, numbers, spaces, and '@'.", "error");
                 return false;
             }
 
-            return true;
+            // Create form data
+            const formData = new FormData();
+            formData.append("first-name", firstName);
+            formData.append("last-name", lastName);
+            formData.append("question", question);
+
+            try {
+                const response = await fetch("contact_handler.php", {
+                    method: "POST",
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.error) {
+                    showMessage(data.message, "error");
+                } else {
+                    showMessage(data.message, "success");
+                    form.reset();
+                }
+            } catch (error) {
+                showMessage("An error occurred. Please try again later.", "error");
+            }
         });
     }
 });
+
+function showMessage(message, type) {
+    const formMessage = document.getElementById("form-message");
+    formMessage.textContent = message;
+    formMessage.className = `form-message ${type}`;
+}
 
 /**
  * Validates name input (First Name & Last Name)
@@ -36,6 +65,11 @@ document.addEventListener("DOMContentLoaded", function () {
  */
 function validateName(input) {
     const regex = /^[a-zA-Z ]+$/;
+    return regex.test(input);
+}
+
+function validateQuestion(input) {
+    const regex = /^[a-zA-Z0-9\s@.,!?-]+$/;
     return regex.test(input);
 }
 

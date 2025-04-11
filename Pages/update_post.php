@@ -37,90 +37,93 @@ if (!$post_id || !$title || !$content || !$category) {
 }
 
 try {
-    // Handle blog image upload if provided
+    // Handle blog image upload
     $blog_image_path = null;
     if (isset($_FILES['blog_image']) && $_FILES['blog_image']['error'] === UPLOAD_ERR_OK) {
-        $upload_dir = '../uploads/';
+        $upload_dir = '../file_uploads/';
+        if (!file_exists($upload_dir)) {
+            mkdir($upload_dir, 0777, true);
+        }
+        
         $file_extension = pathinfo($_FILES['blog_image']['name'], PATHINFO_EXTENSION);
-        $blog_image_filename = uniqid() . '.' . $file_extension;
-        $blog_image_path = 'uploads/' . $blog_image_filename;
+        $blog_image_filename = 'blog_' . uniqid() . '.' . $file_extension;
+        $blog_image_path = 'file_uploads/' . $blog_image_filename;
+        
+        // Delete old blog image if it exists
+        $stmt = $pdo->prepare("SELECT blog_image FROM posts WHERE post_id = ?");
+        $stmt->execute([$post_id]);
+        $old_image = $stmt->fetchColumn();
+        if ($old_image && file_exists('../' . $old_image)) {
+            unlink('../' . $old_image);
+        }
         
         move_uploaded_file($_FILES['blog_image']['tmp_name'], $upload_dir . $blog_image_filename);
     }
 
-    // Handle thumbnail image upload if provided
-    $thumbnail_image_path = null;
+    // Handle thumbnail image upload
+    $thumbnail_path = null;
     if (isset($_FILES['thumbnail_image']) && $_FILES['thumbnail_image']['error'] === UPLOAD_ERR_OK) {
-        $upload_dir = '../uploads/';
+        $upload_dir = '../file_uploads/';
+        if (!file_exists($upload_dir)) {
+            mkdir($upload_dir, 0777, true);
+        }
+        
         $file_extension = pathinfo($_FILES['thumbnail_image']['name'], PATHINFO_EXTENSION);
-        $thumbnail_filename = uniqid() . '.' . $file_extension;
-        $thumbnail_image_path = 'uploads/' . $thumbnail_filename;
+        $thumbnail_filename = 'thumb_' . uniqid() . '.' . $file_extension;
+        $thumbnail_path = 'file_uploads/' . $thumbnail_filename;
+        
+        // Delete old thumbnail if it exists
+        $stmt = $pdo->prepare("SELECT thumbnail_image FROM posts WHERE post_id = ?");
+        $stmt->execute([$post_id]);
+        $old_thumbnail = $stmt->fetchColumn();
+        if ($old_thumbnail && file_exists('../' . $old_thumbnail)) {
+            unlink('../' . $old_thumbnail);
+        }
         
         move_uploaded_file($_FILES['thumbnail_image']['tmp_name'], $upload_dir . $thumbnail_filename);
     }
 
-    // Build the update query dynamically based on what fields are provided
-    $updateFields = [];
-    $params = [];
-
-    // Required fields
-    $updateFields[] = "title = ?";
-    $updateFields[] = "content = ?";
-    $updateFields[] = "category = ?";
-    $params[] = $title;
-    $params[] = $content;
-    $params[] = $category;
-
-    // Optional fields
-    if ($date) {
-        $updateFields[] = "date = ?";
-        $params[] = $date;
-    }
-    if ($author) {
-        $updateFields[] = "author = ?";
-        $params[] = $author;
-    }
-    if ($additional_authors !== null) {
-        $updateFields[] = "additional_authors = ?";
-        $params[] = $additional_authors;
-    }
-    if ($media_links !== null) {
-        $updateFields[] = "media_links = ?";
-        $params[] = $media_links;
-    }
-    if ($tags !== null) {
-        $updateFields[] = "tags = ?";
-        $params[] = $tags;
-    }
-    if ($blog_image_path) {
-        $updateFields[] = "blog_image = ?";
-        $params[] = $blog_image_path;
-    }
-    if ($thumbnail_image_path) {
-        $updateFields[] = "thumbnail_image = ?";
-        $params[] = $thumbnail_image_path;
-    }
-
-    // Add post_id to params array
-    $params[] = $post_id;
-
-    // Update the post
-    $stmt = $pdo->prepare("
-        UPDATE posts 
-        SET " . implode(", ", $updateFields) . "
-        WHERE post_id = ?
-    ");
+    // Update post in database
+    $sql = "UPDATE posts SET 
+            title = :title, 
+            content = :content, 
+            category = :category, 
+            date = :date, 
+            author = :author, 
+            additional_authors = :additional_authors, 
+            media_links = :media_links, 
+            tags = :tags";
     
+    $params = [
+        'title' => $title,
+        'content' => $content,
+        'category' => $category,
+        'date' => $date,
+        'author' => $author,
+        'additional_authors' => $additional_authors,
+        'media_links' => $media_links,
+        'tags' => $tags,
+        'post_id' => $post_id
+    ];
+
+    // Add image paths to update query if new images were uploaded
+    if ($blog_image_path) {
+        $sql .= ", blog_image = :blog_image";
+        $params['blog_image'] = $blog_image_path;
+    }
+    if ($thumbnail_path) {
+        $sql .= ", thumbnail_image = :thumbnail_image";
+        $params['thumbnail_image'] = $thumbnail_path;
+    }
+
+    $sql .= " WHERE post_id = :post_id";
+    
+    $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
 
-    echo json_encode([
-        'success' => true,
-        'message' => 'Post updated successfully'
-    ]);
-} catch (PDOException $e) {
-    echo json_encode([
-        'success' => false,
-        'message' => 'Database error: ' . $e->getMessage()
-    ]);
+    echo json_encode(['success' => true, 'message' => 'Post updated successfully']);
+
+} catch (Exception $e) {
+    echo json_encode(['success' => false, 'message' => 'Error updating post: ' . $e->getMessage()]);
 }
 ?> 

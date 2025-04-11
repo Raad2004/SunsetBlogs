@@ -997,105 +997,107 @@ if (empty($user['username']) || empty($user['profile_image'])) {
             });
         }
 
-        function editPost(postId) {
-            if (!modal) {
-                showAlert('Modal initialization error', 'error');
-                return;
-            }
-
-            fetch('get_post.php?post_id=' + encodeURIComponent(postId))
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok: ' + response.status);
+        // Function to handle post editing
+        async function editPost(postId) {
+            try {
+                // Fetch post data
+                const response = await fetch(`get_post.php?post_id=${postId}`);
+                const data = await response.json();
+                
+                if (!data.success) {
+                    alert(data.message);
+                    return;
                 }
-                return response.json();
-            })
-            .then(data => {
-                if (data.success) {
-                    document.getElementById('edit_post_id').value = data.post.post_id;
-                    document.getElementById('edit_title').value = data.post.title;
-                    document.getElementById('edit_category').value = data.post.category || '';
-                    document.getElementById('edit_date').value = data.post.date || '';
-                    document.getElementById('edit_author').value = data.post.author || '';
-                    document.getElementById('edit_additional_authors').value = data.post.additional_authors || '';
-                    document.getElementById('edit_media_links').value = data.post.media_links || '';
-                    document.getElementById('edit_tags').value = data.post.tags || '';
-                    document.getElementById('edit_content').value = data.post.content || '';
-                    
-                    // Show current images if they exist
-                    const blogImageDiv = document.getElementById('current_blog_image');
-                    const thumbnailImageDiv = document.getElementById('current_thumbnail_image');
-                    
-                    blogImageDiv.innerHTML = data.post.blog_image ? 
-                        `<img src="../${data.post.blog_image}" alt="Current blog image" style="max-width: 200px; margin-top: 10px;">` : 
-                        'No current blog image';
-                    
-                    thumbnailImageDiv.innerHTML = data.post.thumbnail_image ? 
-                        `<img src="../${data.post.thumbnail_image}" alt="Current thumbnail" style="max-width: 200px; margin-top: 10px;">` : 
-                        'No current thumbnail';
-
-                    modal.style.display = 'block';
-                } else {
-                    showAlert(data.message, 'error');
+                
+                // Fill the form with post data
+                document.getElementById('edit_post_id').value = data.post.post_id;
+                document.getElementById('edit_title').value = data.post.title;
+                document.getElementById('edit_content').value = data.post.content;
+                document.getElementById('edit_category').value = data.post.category;
+                document.getElementById('edit_date').value = data.post.date;
+                document.getElementById('edit_author').value = data.post.author;
+                document.getElementById('edit_additional_authors').value = data.post.additional_authors || '';
+                document.getElementById('edit_media_links').value = data.post.media_links || '';
+                document.getElementById('edit_tags').value = data.post.tags || '';
+                
+                // Show current images if they exist
+                if (data.post.blog_image) {
+                    document.getElementById('current_blog_image').innerHTML = `
+                        <img src="../${data.post.blog_image}" alt="Current blog image" style="max-width: 200px;">
+                    `;
                 }
-            })
-            .catch(error => {
+                if (data.post.thumbnail_image) {
+                    document.getElementById('current_thumbnail_image').innerHTML = `
+                        <img src="../${data.post.thumbnail_image}" alt="Current thumbnail" style="max-width: 100px;">
+                    `;
+                }
+                
+                // Show the modal
+                document.getElementById('editPostModal').style.display = 'block';
+            } catch (error) {
                 console.error('Error:', error);
-                showAlert('An error occurred while fetching post details: ' + error.message, 'error');
-            });
+                alert('An error occurred while fetching post data');
+            }
         }
 
-        function handleEditPostFormSubmit(e) {
+        // Handle edit form submission
+        document.getElementById('editPostForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-
+            
             const formData = new FormData();
+            formData.append('post_id', document.getElementById('edit_post_id').value);
+            formData.append('title', document.getElementById('edit_title').value);
+            formData.append('content', document.getElementById('edit_content').value);
+            formData.append('category', document.getElementById('edit_category').value);
+            formData.append('date', document.getElementById('edit_date').value);
+            formData.append('author', document.getElementById('edit_author').value);
+            formData.append('additional_authors', document.getElementById('edit_additional_authors').value);
+            formData.append('media_links', document.getElementById('edit_media_links').value);
+            formData.append('tags', document.getElementById('edit_tags').value);
             
-            // Add all form fields to FormData
-            const fields = [
-                'post_id', 'title', 'category', 'date', 'author',
-                'additional_authors', 'media_links', 'tags', 'content'
-            ];
+            // Add files if they are selected - using the correct field names
+            const blogImage = document.getElementById('edit_blog_image').files[0];
+            const thumbnailImage = document.getElementById('edit_thumbnail_image').files[0];
             
-            fields.forEach(field => {
-                const value = document.getElementById('edit_' + field).value;
-                formData.append(field, value || ''); // Send empty string if value is null
-            });
-
-            // Handle file uploads
-            const blogImageInput = document.getElementById('edit_blog_image');
-            const thumbnailInput = document.getElementById('edit_thumbnail_image');
+            if (blogImage) {
+                formData.append('blog_image', blogImage);
+            }
+            if (thumbnailImage) {
+                formData.append('thumbnail_image', thumbnailImage);
+            }
             
-            if (blogImageInput.files[0]) {
-                formData.append('blog_image', blogImageInput.files[0]);
-            }
-            if (thumbnailInput.files[0]) {
-                formData.append('thumbnail_image', thumbnailInput.files[0]);
-            }
-
-            // Log form data for debugging
-            for (let pair of formData.entries()) {
-                console.log(pair[0] + ': ' + pair[1]);
-            }
-
-            fetch('update_post.php', {
-                method: 'POST',
-                body: formData // FormData will automatically set the correct Content-Type
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showAlert(data.message, 'success');
-                    modal.style.display = 'none';
-                    setTimeout(() => window.location.reload(), 1000);
+            try {
+                const response = await fetch('update_post.php', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('Post updated successfully!');
+                    location.reload(); // Reload the page to show updated data
                 } else {
-                    showAlert(data.message, 'error');
+                    alert(result.message || 'An error occurred while updating the post');
                 }
-            })
-            .catch(error => {
+            } catch (error) {
                 console.error('Error:', error);
-                showAlert('An error occurred while updating the post: ' + error.message, 'error');
-            });
-        }
+                alert('An error occurred while updating the post');
+            }
+        });
+
+        // Close modal when clicking the close button
+        document.querySelector('.close').addEventListener('click', function() {
+            document.getElementById('editPostModal').style.display = 'none';
+        });
+
+        // Close modal when clicking outside of it
+        window.addEventListener('click', function(event) {
+            const modal = document.getElementById('editPostModal');
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        });
 
         // Function to load advanced statistics
         function loadAdvancedStats(period = 30) {
@@ -1282,4 +1284,4 @@ if (empty($user['username']) || empty($user['profile_image'])) {
         <?php endif; ?>
     </script>
 </body>
-</html> 
+</html>

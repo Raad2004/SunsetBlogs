@@ -17,7 +17,8 @@ document.getElementById('login-form').addEventListener('submit', async function(
         
         if (data.success) {
             console.log('Logged in as:', data.username);
-            window.location.href = 'home.html';
+            // Redirect admin users to profile.php
+            window.location.href = 'profile.php';
         } else {
             showError(data.message);
         }

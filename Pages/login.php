@@ -49,6 +49,8 @@ try {
     // Check if user is admin
     $isAdmin = ($user['username'] === 'Admin');
     
+    // Store admin status in session
+    $_SESSION['is_admin'] = $isAdmin;
 
     respond(true, [
         'username' => $user['username'],

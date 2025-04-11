@@ -19,7 +19,7 @@ function isAdmin() {
     $stmt->execute([$_SESSION['user_id']]);
     $user = $stmt->fetch();
     
-    $isAdmin = isset($user['username']) && strtolower($user['username']) === 'admin';
+    $isAdmin = isset($user['username']) && $user['username'] === 'Admin';
     
     // Cache the result in session
     $_SESSION['is_admin'] = $isAdmin;
